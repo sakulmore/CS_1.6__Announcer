@@ -32,7 +32,7 @@ Messages:
 "This prints a literal asterisk: \* star"
 "*gWelcome*d to *tserver*d!"
 ```
-- After installing the plugin on the server, a new .cfg file announcer.cfg will be created in the /cstrike/addons/amxmodx/data folder.
+- After installing the plugin on the server, a new .cfg file `announcer.cfg` will be created in the `/cstrike/addons/amxmodx/data` folder.
 
 # Support
 If you having any issues please feel free to write your issue to the issue section :) .
