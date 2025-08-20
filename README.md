@@ -11,29 +11,33 @@ A plugin that sends announcement messages to players at a chosen interval.
 - You can choose whether you want the messages to be sent sequentially or randomly.
 - Color support
 - You can choose the interval in seconds
+- When no player is connected to the server, the messages will not be displayed (optimization).
 - Easy to use
+
+# Console Commands
+`ann_reload` = When you modify the .cfg file you don't need to restart the whole server, just enter this command and the .cfg file will automatically reload with the current (new) values.
+
+The command is protected by an Admin Flag. To change the Admin Flag, simply edit the line `#define ANN_RELOAD_FLAG ADMIN_LEVEL_H` in the .sma file.
 
 # Config File
 Default:
 ```
-; Announcer
-; You can use colors:
+; You can use colors (prefixes):
+;   *d = default chat color
+;   *t = team color
+;   *g = green
 ;
-; ^1 = default chat color
-; ^3 = team color
-; ^4 = green
+; Escape asterisk with backslash to print it literally: \*
 
-Interval: 5 // In Seconds
-Random: true
+Interval: 120
+Random: false
 
 Messages:
-"^4Welcome to the server!"
-"^4[Info]^1 This message uses ^3colors^1."
-"Message 3"
+"*g[MY-WEBSITE]*d Visit our *twebsite*d!"
+"This prints a literal asterisk: \* star"
+"*gWelcome*d to *tserver*d!"
 ```
-
-# Known Issues
-After the plugin generates the config file, instead of color codes (^1, ^3, ^4), strange characters appear in the .cfg file. Simply replace these characters with "^1, ^3, or ^4" and everything will work as it should. A fix is in progress.
+- After installing the plugin on the server, a new .cfg file `announcer.cfg` will be created in the `/cstrike/addons/amxmodx/data` folder.
 
 # Support
 If you having any issues please feel free to write your issue to the issue section :) .
