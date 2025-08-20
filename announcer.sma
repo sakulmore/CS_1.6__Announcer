@@ -2,12 +2,14 @@
 #include <amxmisc>
 
 #define PLUGIN_NAME    "Announcer"
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 #define PLUGIN_AUTHOR  "sakulmore"
 
 #define TASK_ANNOUNCER   50011
 #define MIN_INTERVAL_SEC 5
 #define MAX_MSG_LEN      191
+
+#define ANN_RELOAD_FLAG ADMIN_LEVEL_H
 
 new g_szCfgPath[256];
 new g_iInterval = 120;
@@ -28,6 +30,8 @@ public plugin_init()
     formatex(g_szCfgPath, charsmax(g_szCfgPath), "%s/announcer.cfg", datadir);
 
     g_msgSayText = get_user_msgid("SayText");
+
+    register_concmd("ann_reload", "CmdAnnReload", ANN_RELOAD_FLAG, "Reload Announcer config");
 
     EnsureConfigFileExists();
     LoadAnnouncerConfig();
@@ -160,8 +164,8 @@ LoadAnnouncerConfig()
     if (task_exists(TASK_ANNOUNCER))
     {
         remove_task(TASK_ANNOUNCER);
-        set_task(float(g_iInterval), "Task_Announce", TASK_ANNOUNCER, _, _, "b");
     }
+    set_task(float(g_iInterval), "Task_Announce", TASK_ANNOUNCER, _, _, "b");
 }
 
 stock ToSayTextColors(const input[], output[], outlen)
@@ -261,4 +265,29 @@ public Task_Announce()
     ArrayGetString(g_aMsgs, idx, msg, charsmax(msg));
 
     SendColoredMessageAll(msg);
+}
+
+public CmdAnnReload(id, level, cid)
+{
+    if (id == 0)
+    {
+        LoadAnnouncerConfig();
+        server_print("[Announcer] Config Reloaded.");
+        log_amx("[Announcer] Config reloaded by server console.");
+        return PLUGIN_HANDLED;
+    }
+
+    if (!cmd_access(id, level, cid, 1))
+    {
+        client_print(id, print_console, "[Announcer] You do not have access to this command.");
+        return PLUGIN_HANDLED;
+    }
+
+    LoadAnnouncerConfig();
+
+    client_print(id, print_console, "[Announcer] Config Reloaded.");
+    server_print("[Announcer] Config reloaded by admin #%d.", id);
+    log_amx("[Announcer] Config reloaded by admin #%d.", id);
+
+    return PLUGIN_HANDLED;
 }
