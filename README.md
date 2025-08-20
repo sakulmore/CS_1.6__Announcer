@@ -10,6 +10,7 @@ A plugin that sends announcement messages to players at a chosen interval.
 # Features
 - You can choose whether you want the messages to be sent sequentially or randomly.
 - Color support
+- You can choose the interval in seconds
 - Easy to use
 
 # Config File
