@@ -2,7 +2,7 @@
 #include <amxmisc>
 
 #define PLUGIN_NAME    "Announcer"
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 #define PLUGIN_AUTHOR  "sakulmore"
 
 #define TASK_ANNOUNCER   50011
@@ -49,19 +49,20 @@ EnsureConfigFileExists()
     if (!fp) return;
 
     fprintf(fp, "; Announcer%c", 10);
-    fprintf(fp, "; You can use colors:%c", 10);
+    fprintf(fp, "; You can use colors (prefixes):%c", 10);
+    fprintf(fp, ";   *d = default chat color%c", 10);
+    fprintf(fp, ";   *t = team color%c", 10);
+    fprintf(fp, ";   *g = green%c", 10);
     fprintf(fp, ";%c", 10);
-    fprintf(fp, "; ^1 = default chat color%c", 10);
-    fprintf(fp, "; ^3 = team color%c", 10);
-    fprintf(fp, "; ^4 = green%c%c", 10, 10);
+    fprintf(fp, "; Escape asterisk with backslash to print it literally: \*%c%c", 10, 10);
 
     fprintf(fp, "Interval: 120%c", 10);
     fprintf(fp, "Random: false%c%c", 10, 10);
 
     fprintf(fp, "Messages:%c", 10);
-    fprintf(fp, "%c%s%c%c", 34, "^4Welcome to the server!", 34, 10);
-    fprintf(fp, "%c%s%c%c", 34, "^4[Info]^1 This message uses ^3colors^1.", 34, 10);
-    fprintf(fp, "%c%s%c%c", 34, "Message 3", 34, 10);
+    fprintf(fp, "%c%s%c%c", 34, "*g[MY-WEBSITE]*d Visit our *twebsite*d!", 34, 10);
+    fprintf(fp, "%c%s%c%c", 34, "This prints a literal asterisk: \* star", 34, 10);
+    fprintf(fp, "%c%s%c%c", 34, "*gWelcome*d to *tserver*d!", 34, 10);
 
     fclose(fp);
 }
@@ -174,13 +175,33 @@ stock ToSayTextColors(const input[], output[], outlen)
 
     while (input[i] && j < outlen - 1)
     {
-        if (input[i] == 94 && input[i+1])
+        if (input[i] == 92 && input[i+1] == 42)
         {
-            switch (input[i+1])
+            output[j++] = 42;
+            i += 2;
+            continue;
+        }
+
+        if (input[i] == 42 && input[i+1])
+        {
+            new c = input[i+1];
+            if (c == 'd' || c == 'D')
             {
-                case 49: { if (j < outlen - 1) output[j++] = 0x01; i += 2; continue; }
-                case 51: { if (j < outlen - 1) output[j++] = 0x03; i += 2; continue; }
-                case 52: { if (j < outlen - 1) output[j++] = 0x04; i += 2; continue; }
+                if (j < outlen - 1) output[j++] = 0x01;
+                i += 2;
+                continue;
+            }
+            if (c == 't' || c == 'T')
+            {
+                if (j < outlen - 1) output[j++] = 0x03;
+                i += 2;
+                continue;
+            }
+            if (c == 'g' || c == 'G')
+            {
+                if (j < outlen - 1) output[j++] = 0x04;
+                i += 2;
+                continue;
             }
         }
 
@@ -221,25 +242,17 @@ public Task_Announce()
 
     if (g_bRandom)
     {
-        if (count == 1)
-        {
-            idx = 0;
-        }
+        if (count == 1) idx = 0;
         else
         {
             idx = random_num(0, count - 1);
-            if (idx == g_iLastRandom)
-            {
-                idx = (idx + 1) % count;
-            }
+            if (idx == g_iLastRandom) idx = (idx + 1) % count;
         }
         g_iLastRandom = idx;
     }
     else
     {
-        if (g_iMsgIndex < 0 || g_iMsgIndex >= count)
-            g_iMsgIndex = 0;
-
+        if (g_iMsgIndex < 0 || g_iMsgIndex >= count) g_iMsgIndex = 0;
         idx = g_iMsgIndex;
         g_iMsgIndex = (g_iMsgIndex + 1) % count;
     }
