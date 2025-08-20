@@ -16,20 +16,20 @@ A plugin that sends announcement messages to players at a chosen interval.
 # Config File
 Default:
 ```
-; Announcer
-; You can use colors:
+; You can use colors (prefixes):
+;   *d = default chat color
+;   *t = team color
+;   *g = green
 ;
-; ^1 = default chat color
-; ^3 = team color
-; ^4 = green
+; Escape asterisk with backslash to print it literally: \*
 
-Interval: 5 // In Seconds
-Random: true
+Interval: 120
+Random: false
 
 Messages:
-"^4Welcome to the server!"
-"^4[Info]^1 This message uses ^3colors^1."
-"Message 3"
+"*g[MY-WEBSITE]*d Visit our *twebsite*d!"
+"This prints a literal asterisk: \* star"
+"*gWelcome*d to *tserver*d!"
 ```
 
 # Known Issues
