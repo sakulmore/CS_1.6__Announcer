@@ -14,6 +14,10 @@ A plugin that sends announcement messages to players at a chosen interval.
 - When no player is connected to the server, the messages will not be displayed (optimization).
 - Easy to use
 
+# Console Commands
+`ann_reload` = When you modify the .cfg file you don't need to restart the whole server, just enter this command and the .cfg file will automatically reload with the current (new) values.
+The command is protected by an Admin Flag. To change the Admin Flag, simply edit the line `#define ANN_RELOAD_FLAG ADMIN_LEVEL_H` in the .sma file.
+
 # Config File
 Default:
 ```
