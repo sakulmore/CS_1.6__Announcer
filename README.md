@@ -33,8 +33,5 @@ Messages:
 "*gWelcome*d to *tserver*d!"
 ```
 
-# Known Issues
-After the plugin generates the config file, instead of color codes (^1, ^3, ^4), strange characters appear in the .cfg file. Simply replace these characters with "^1, ^3, or ^4" and everything will work as it should. A fix is in progress.
-
 # Support
 If you having any issues please feel free to write your issue to the issue section :) .
