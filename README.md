@@ -22,6 +22,7 @@ The command is protected by an Admin Flag. To change the Admin Flag, simply edit
 # Config File
 Default:
 ```
+; Announcer
 ; You can use colors (prefixes):
 ;   *d = default chat color
 ;   *t = team color
