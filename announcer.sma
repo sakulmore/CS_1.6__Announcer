@@ -2,7 +2,7 @@
 #include <amxmisc>
 
 #define PLUGIN_NAME    "Announcer"
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 #define PLUGIN_AUTHOR  "sakulmore"
 
 #define TASK_ANNOUNCER   50011
@@ -20,6 +20,7 @@ new g_iMsgIndex = 0;
 new g_iLastRandom = -1;
 
 new g_msgSayText;
+new bool:g_bReloading = false;
 
 public plugin_init()
 {
@@ -35,8 +36,6 @@ public plugin_init()
 
     EnsureConfigFileExists();
     LoadAnnouncerConfig();
-
-    set_task(float(g_iInterval), "Task_Announce", TASK_ANNOUNCER, _, _, "b");
 }
 
 public plugin_end()
@@ -58,14 +57,14 @@ EnsureConfigFileExists()
     fprintf(fp, ";   *t = team color%c", 10);
     fprintf(fp, ";   *g = green%c", 10);
     fprintf(fp, ";%c", 10);
-    fprintf(fp, "; Escape asterisk with backslash to print it literally: \*%c%c", 10, 10);
+    fprintf(fp, "; Escape asterisk with backslash to print it literally: \\*%c%c", 10, 10);
 
     fprintf(fp, "Interval: 120%c", 10);
     fprintf(fp, "Random: false%c%c", 10, 10);
 
     fprintf(fp, "Messages:%c", 10);
     fprintf(fp, "%c%s%c%c", 34, "*g[MY-WEBSITE]*d Visit our *twebsite*d!", 34, 10);
-    fprintf(fp, "%c%s%c%c", 34, "This prints a literal asterisk: \* star", 34, 10);
+    fprintf(fp, "%c%s%c%c", 34, "This prints a literal asterisk: \\* star", 34, 10);
     fprintf(fp, "%c%s%c%c", 34, "*gWelcome*d to *tserver*d!", 34, 10);
 
     fclose(fp);
@@ -73,6 +72,8 @@ EnsureConfigFileExists()
 
 LoadAnnouncerConfig()
 {
+    g_bReloading = true;
+
     if (g_aMsgs) ArrayClear(g_aMsgs);
     else g_aMsgs = ArrayCreate(MAX_MSG_LEN + 1);
 
@@ -83,7 +84,12 @@ LoadAnnouncerConfig()
 
     new fp = fopen(g_szCfgPath, "rt");
     if (!fp)
+    {
+        if (task_exists(TASK_ANNOUNCER)) remove_task(TASK_ANNOUNCER);
+        set_task(float(g_iInterval), "Task_Announce", TASK_ANNOUNCER, _, _, "b");
+        g_bReloading = false;
         return;
+    }
 
     new line[256];
     new bool:inMessages = false;
@@ -161,11 +167,28 @@ LoadAnnouncerConfig()
         ArrayPushString(g_aMsgs, "Welcome to the server!");
     }
 
-    if (task_exists(TASK_ANNOUNCER))
-    {
-        remove_task(TASK_ANNOUNCER);
-    }
+    if (task_exists(TASK_ANNOUNCER)) remove_task(TASK_ANNOUNCER);
     set_task(float(g_iInterval), "Task_Announce", TASK_ANNOUNCER, _, _, "b");
+
+    g_bReloading = false;
+}
+
+stock GetEligiblePlayers(players[], &num)
+{
+    num = 0;
+
+    new all[32], nall;
+    get_players(all, nall, "ch");
+
+    for (new i = 0; i < nall; i++)
+    {
+        new id = all[i];
+        if (!is_user_connected(id)) continue;
+
+        if (get_user_team(id) == 0) continue;
+
+        players[num++] = id;
+    }
 }
 
 stock ToSayTextColors(const input[], output[], outlen)
@@ -221,7 +244,8 @@ stock SendColoredMessageAll(const msg[])
     ToSayTextColors(msg, buf, sizeof(buf));
 
     new players[32], num;
-    get_players(players, num, "ch");
+    GetEligiblePlayers(players, num);
+    if (num <= 0) return;
 
     for (new i = 0; i < num; i++)
     {
@@ -235,7 +259,11 @@ stock SendColoredMessageAll(const msg[])
 
 public Task_Announce()
 {
-    if (get_playersnum() <= 0)
+    if (g_bReloading) return;
+
+    new elig[32], eligNum;
+    GetEligiblePlayers(elig, eligNum);
+    if (eligNum <= 0)
         return;
 
     new count = ArraySize(g_aMsgs);
