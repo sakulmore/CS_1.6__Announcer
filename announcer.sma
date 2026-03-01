@@ -2,7 +2,7 @@
 #include <amxmisc>
 
 #define PLUGIN_NAME    "Announcer"
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 #define PLUGIN_AUTHOR  "sakulmore"
 
 #define TASK_ANNOUNCER   50011
@@ -10,6 +10,9 @@
 #define MAX_MSG_LEN      191
 
 #define ANN_RELOAD_FLAG ADMIN_LEVEL_H
+
+#define MVP_FLAG ADMIN_LEVEL_H
+#define IMPO_SOUND "announcer/blip1.wav"
 
 new g_szCfgPath[256];
 new g_iInterval = 120;
@@ -21,6 +24,11 @@ new g_iLastRandom = -1;
 
 new g_msgSayText;
 new bool:g_bReloading = false;
+
+public plugin_precache()
+{
+    precache_sound(IMPO_SOUND);
+}
 
 public plugin_init()
 {
@@ -57,15 +65,23 @@ EnsureConfigFileExists()
     fprintf(fp, ";   *t = team color%c", 10);
     fprintf(fp, ";   *g = green%c", 10);
     fprintf(fp, ";%c", 10);
+    fprintf(fp, "; Dynamic variables:%c", 10);
+    fprintf(fp, ";   {PLAYERS}    - Current player count%c", 10);
+    fprintf(fp, ";   {MAXPLAYERS} - Server slots%c", 10);
+    fprintf(fp, ";   {MAP}        - Current map name%c", 10);
+    fprintf(fp, ";   {TIME}       - Current server time%c", 10);
+    fprintf(fp, ";   {IMPO}       - Plays an alert sound%c", 10);
+    fprintf(fp, ";   {MVP}        - Message visible only to admins%c", 10);
+    fprintf(fp, ";%c", 10);
     fprintf(fp, "; Escape asterisk with backslash to print it literally: \\*%c%c", 10, 10);
 
     fprintf(fp, "Interval: 120%c", 10);
     fprintf(fp, "Random: false%c%c", 10, 10);
 
     fprintf(fp, "Messages:%c", 10);
-    fprintf(fp, "%c%s%c%c", 34, "*g[MY-WEBSITE]*d Visit our *twebsite*d!", 34, 10);
-    fprintf(fp, "%c%s%c%c", 34, "This prints a literal asterisk: \\* star", 34, 10);
-    fprintf(fp, "%c%s%c%c", 34, "*gWelcome*d to *tserver*d!", 34, 10);
+    fprintf(fp, "%c%s%c%c", 34, "*g[INFO]*d Now playing *t{PLAYERS} / {MAXPLAYERS}*d on map *g{MAP}*d.", 34, 10);
+    fprintf(fp, "%c%s%c%c", 34, "{IMPO}*g[IMPORTANT]*d This message played alert sound!", 34, 10);
+    fprintf(fp, "%c%s%c%c", 34, "{MVP}*t[VIP]*d World-Time is *g{TIME}*d. Enjoy your game!", 34, 10);
 
     fclose(fp);
 }
@@ -238,7 +254,7 @@ stock ToSayTextColors(const input[], output[], outlen)
     output[j] = 0;
 }
 
-stock SendColoredMessageAll(const msg[])
+stock SendColoredMessageAll(const msg[], bool:bIsMVP, bool:bPlaySound)
 {
     new buf[MAX_MSG_LEN + 8];
     ToSayTextColors(msg, buf, sizeof(buf));
@@ -250,10 +266,19 @@ stock SendColoredMessageAll(const msg[])
     for (new i = 0; i < num; i++)
     {
         new id = players[i];
+        
+        if (bIsMVP && !(get_user_flags(id) & MVP_FLAG))
+            continue;
+
         message_begin(MSG_ONE, g_msgSayText, _, id);
         write_byte(id);
         write_string(buf);
         message_end();
+        
+        if (bPlaySound)
+        {
+            client_cmd(id, "spk ^"%s^"", IMPO_SOUND);
+        }
     }
 }
 
@@ -289,10 +314,44 @@ public Task_Announce()
         g_iMsgIndex = (g_iMsgIndex + 1) % count;
     }
 
-    new msg[MAX_MSG_LEN + 1];
+    new msg[MAX_MSG_LEN * 2];
     ArrayGetString(g_aMsgs, idx, msg, charsmax(msg));
 
-    SendColoredMessageAll(msg);
+    new bool:bIsMVP = (replace_all(msg, charsmax(msg), "{MVP}", "") > 0);
+    new bool:bPlaySound = (replace_all(msg, charsmax(msg), "{IMPO}", "") > 0);
+
+    if (contain(msg, "{MAP}") != -1)
+    {
+        new map[32];
+        get_mapname(map, charsmax(map));
+        replace_all(msg, charsmax(msg), "{MAP}", map);
+    }
+
+    if (contain(msg, "{MAXPLAYERS}") != -1)
+    {
+        new maxpl[8];
+        num_to_str(get_maxplayers(), maxpl, charsmax(maxpl));
+        replace_all(msg, charsmax(msg), "{MAXPLAYERS}", maxpl);
+    }
+
+    if (contain(msg, "{PLAYERS}") != -1)
+    {
+        new plStr[8];
+        num_to_str(get_playersnum(), plStr, charsmax(plStr));
+        replace_all(msg, charsmax(msg), "{PLAYERS}", plStr);
+    }
+
+    if (contain(msg, "{TIME}") != -1)
+    {
+        new timeStr[32];
+        get_time("%H:%M:%S", timeStr, charsmax(timeStr));
+        replace_all(msg, charsmax(msg), "{TIME}", timeStr);
+    }
+
+    trim(msg);
+    msg[MAX_MSG_LEN] = 0;
+
+    SendColoredMessageAll(msg, bIsMVP, bPlaySound);
 }
 
 public CmdAnnReload(id, level, cid)

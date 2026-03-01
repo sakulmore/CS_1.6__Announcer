@@ -13,6 +13,7 @@ A plugin that sends announcement messages to players at a chosen interval.
 - Color support
 - You can choose the interval in seconds
 - When no player is connected to the server, the messages will not be displayed (optimization).
+- Variables (see below)
 - Easy to use
 
 # Console Commands
@@ -29,17 +30,34 @@ Default:
 ;   *t = team color
 ;   *g = green
 ;
-; Escape asterisk with backslash to print it literally: \*
+; Dynamic variables:
+;   {PLAYERS}    - Current player count
+;   {MAXPLAYERS} - Server slots
+;   {MAP}        - Current map name
+;   {TIME}       - Current server time
+;   {IMPO}       - Plays an alert sound
+;   {MVP}        - Message visible only to admins
+;
+; Escape asterisk with backslash to print it literally: \\*
 
 Interval: 120
 Random: false
 
 Messages:
-"*g[MY-WEBSITE]*d Visit our *twebsite*d!"
-"This prints a literal asterisk: \* star"
-"*gWelcome*d to *tserver*d!"
+"*g[INFO]*d Now playing *t{PLAYERS} / {MAXPLAYERS}*d on map *g{MAP}*d."
+"{IMPO}*g[IMPORTANT]*d This message played alert sound!"
+"{MVP}*t[VIP]*d World-Time is *g{TIME}*d. Enjoy your game!"
 ```
 - After installing the plugin on the server, a new .cfg file `announcer.cfg` will be created in the `/cstrike/addons/amxmodx/data` folder.
+
+# Variables
+```
+{PLAYERS} - Displays the current number of players on the server.
+{MAXPLAYERS} - Shows the maximum number of players (slots) on the server.
+{MAP} - Shows the currently played map.
+{IMPO} - Plays a sound when the message is displayed.
+{MVP} - The message will only be displayed to players with the appropriate admin flag.
+```
 
 # Support
 If you having any issues please feel free to write your issue to the issue section :) .
