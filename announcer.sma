@@ -63,7 +63,7 @@ public plugin_init()
     register_concmd("ann_reload", "CmdAnnReload", ADMIN_ALL, "Reload Announcer config");
     
     register_clcmd("say /ann_menu", "CmdShowMainMenu");
-    register_concmd("amx_ann_menu", "CmdShowMainMenu");
+    register_concmd("ann_menu", "CmdShowMainMenu");
 
     LoadFlagsConfig();
     EnsureConfigFileExists();
