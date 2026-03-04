@@ -64,5 +64,8 @@ Messages:
 {MVP} - The message will only be displayed to players with the appropriate admin flag.
 ```
 
+# Video Showcase
+https://youtu.be/nnMBCE5T-DQ
+
 # Support
 If you having any issues please feel free to write your issue to the issue section :) .
