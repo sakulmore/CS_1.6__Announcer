@@ -14,6 +14,7 @@ A plugin that sends announcement messages to players at a chosen interval.
 - You can choose the interval in seconds
 - When no player is connected to the server, the messages will not be displayed (optimization).
 - Variables (see below)
+- In-Game Admin Flag changing
 - Easy to use
 
 # Chat Commands
