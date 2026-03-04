@@ -2,19 +2,20 @@
 #include <amxmisc>
 
 #define PLUGIN_NAME    "Announcer"
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 #define PLUGIN_AUTHOR  "sakulmore"
 
 #define TASK_ANNOUNCER   50011
 #define MIN_INTERVAL_SEC 5
 #define MAX_MSG_LEN      191
 
-#define ANN_RELOAD_FLAG ADMIN_LEVEL_H
-
-#define MVP_FLAG ADMIN_LEVEL_H
 #define IMPO_SOUND "announcer/blip1.wav"
 
+new g_iFlagReload = ADMIN_LEVEL_H;
+new g_iFlagMVP = ADMIN_LEVEL_H;
+
 new g_szCfgPath[256];
+new g_szFlagsCfgPath[256];
 new g_iInterval = 120;
 new bool:g_bRandom = false;
 
@@ -24,6 +25,24 @@ new g_iLastRandom = -1;
 
 new g_msgSayText;
 new bool:g_bReloading = false;
+
+new g_iMenuTarget[33];
+
+new const g_szFlagNames[][] = {
+    "a (Immunity)", "b (Reservation)", "c (Kick)", "d (Ban)", "e (Slay)",
+    "f (Map)", "g (Cvar)", "h (Cfg)", "i (Chat)", "j (Vote)",
+    "k (Password)", "l (Rcon)", "m (Level A)", "n (Level B)", "o (Level C)",
+    "p (Level D)", "q (Level E)", "r (Level F)", "s (Level G)", "t (Level H)",
+    "u (Menu)", "z (User)"
+};
+
+new const g_iFlagValues[] = {
+    ADMIN_IMMUNITY, ADMIN_RESERVATION, ADMIN_KICK, ADMIN_BAN, ADMIN_SLAY,
+    ADMIN_MAP, ADMIN_CVAR, ADMIN_CFG, ADMIN_CHAT, ADMIN_VOTE,
+    ADMIN_PASSWORD, ADMIN_RCON, ADMIN_LEVEL_A, ADMIN_LEVEL_B, ADMIN_LEVEL_C,
+    ADMIN_LEVEL_D, ADMIN_LEVEL_E, ADMIN_LEVEL_F, ADMIN_LEVEL_G, ADMIN_LEVEL_H,
+    ADMIN_MENU, ADMIN_USER
+};
 
 public plugin_precache()
 {
@@ -37,11 +56,16 @@ public plugin_init()
     new datadir[128];
     get_datadir(datadir, charsmax(datadir));
     formatex(g_szCfgPath, charsmax(g_szCfgPath), "%s/announcer.cfg", datadir);
+    formatex(g_szFlagsCfgPath, charsmax(g_szFlagsCfgPath), "%s/ann_flags.cfg", datadir);
 
     g_msgSayText = get_user_msgid("SayText");
 
-    register_concmd("ann_reload", "CmdAnnReload", ANN_RELOAD_FLAG, "Reload Announcer config");
+    register_concmd("ann_reload", "CmdAnnReload", ADMIN_ALL, "Reload Announcer config");
+    
+    register_clcmd("say /ann_menu", "CmdShowMainMenu");
+    register_concmd("amx_ann_menu", "CmdShowMainMenu");
 
+    LoadFlagsConfig();
     EnsureConfigFileExists();
     LoadAnnouncerConfig();
 }
@@ -49,6 +73,175 @@ public plugin_init()
 public plugin_end()
 {
     if (g_aMsgs) ArrayDestroy(g_aMsgs);
+}
+
+LoadFlagsConfig()
+{
+    if (!file_exists(g_szFlagsCfgPath))
+    {
+        SaveFlagsConfig();
+        return;
+    }
+
+    new fp = fopen(g_szFlagsCfgPath, "rt");
+    if (!fp) return;
+
+    new line[128], key[32], val[32];
+    while (!feof(fp))
+    {
+        fgets(fp, line, charsmax(line));
+        trim(line);
+
+        if (!line[0] || line[0] == ';' || line[0] == '#') continue;
+
+        strtok(line, key, charsmax(key), val, charsmax(val), '=');
+        trim(key);
+        trim(val);
+
+        if (equali(key, "reload"))
+        {
+            g_iFlagReload = read_flags(val);
+        }
+        else if (equali(key, "mvp"))
+        {
+            g_iFlagMVP = read_flags(val);
+        }
+    }
+    fclose(fp);
+}
+
+SaveFlagsConfig()
+{
+    new fp = fopen(g_szFlagsCfgPath, "wt");
+    if (!fp) return;
+
+    new szReload[32], szMVP[32];
+    get_flags(g_iFlagReload, szReload, charsmax(szReload));
+    get_flags(g_iFlagMVP, szMVP, charsmax(szMVP));
+
+    fprintf(fp, "; Announcer Flags Configuration%c", 10);
+    fprintf(fp, "reload=%s%c", szReload, 10);
+    fprintf(fp, "mvp=%s%c", szMVP, 10);
+
+    fclose(fp);
+}
+
+public CmdShowMainMenu(id)
+{
+    if (!(get_user_flags(id) & ADMIN_RCON))
+    {
+        client_print(id, print_chat, "[Announcer] You do not have access to the flag settings.");
+        return PLUGIN_HANDLED;
+    }
+
+    new menu = menu_create("\yAnnouncer: \wFlag Settings", "MainMenu_Handler");
+    new szItem[128], szFlagName[64];
+
+    GetFlagNameByValue(g_iFlagReload, szFlagName, charsmax(szFlagName));
+    formatex(szItem, charsmax(szItem), "Change flag for: \yReload\w (Current: \r%s\w)", szFlagName);
+    menu_additem(menu, szItem, "0");
+
+    GetFlagNameByValue(g_iFlagMVP, szFlagName, charsmax(szFlagName));
+    formatex(szItem, charsmax(szItem), "Change flag for: \yMVP Messages\w (Current: \r%s\w)", szFlagName);
+    menu_additem(menu, szItem, "1");
+
+    menu_display(id, menu, 0);
+    return PLUGIN_HANDLED;
+}
+
+public MainMenu_Handler(id, menu, item)
+{
+    if (item == MENU_EXIT)
+    {
+        menu_destroy(menu);
+        return PLUGIN_HANDLED;
+    }
+
+    new data[6], szName[64], access, callback;
+    menu_item_getinfo(menu, item, access, data, charsmax(data), szName, charsmax(szName), callback);
+    
+    new selection = str_to_num(data);
+    menu_destroy(menu);
+    
+    ShowFlagMenu(id, selection);
+    return PLUGIN_HANDLED;
+}
+
+public ShowFlagMenu(id, settingType)
+{
+    g_iMenuTarget[id] = settingType; 
+    
+    new menuTitle[128];
+    formatex(menuTitle, charsmax(menuTitle), "\ySelect a new flag for \w%s:", settingType == 0 ? "Reload" : "MVP");
+    new menu = menu_create(menuTitle, "FlagMenu_Handler");
+    
+    new currentFlag = (settingType == 0) ? g_iFlagReload : g_iFlagMVP;
+    
+    for (new i = 0; i < sizeof(g_szFlagNames); i++)
+    {
+        new szItem[64], szNum[4];
+        num_to_str(i, szNum, charsmax(szNum));
+        
+        if (currentFlag == g_iFlagValues[i])
+        {
+            formatex(szItem, charsmax(szItem), "\r%s [*]", g_szFlagNames[i]);
+        }
+        else
+        {
+            formatex(szItem, charsmax(szItem), "\w%s", g_szFlagNames[i]);
+        }
+        
+        menu_additem(menu, szItem, szNum);
+    }
+    
+    menu_display(id, menu, 0);
+}
+
+public FlagMenu_Handler(id, menu, item)
+{
+    if (item == MENU_EXIT)
+    {
+        menu_destroy(menu);
+        CmdShowMainMenu(id);
+        return PLUGIN_HANDLED;
+    }
+    
+    new data[6], szName[64], access, callback;
+    menu_item_getinfo(menu, item, access, data, charsmax(data), szName, charsmax(szName), callback);
+    
+    new flagIndex = str_to_num(data);
+    new newFlag = g_iFlagValues[flagIndex];
+    
+    if (g_iMenuTarget[id] == 0)
+    {
+        g_iFlagReload = newFlag;
+        client_print(id, print_chat, "[Announcer] Reload flag has been changed to: %s", g_szFlagNames[flagIndex]);
+    }
+    else
+    {
+        g_iFlagMVP = newFlag;
+        client_print(id, print_chat, "[Announcer] MVP flag has been changed to: %s", g_szFlagNames[flagIndex]);
+    }
+    
+    SaveFlagsConfig();
+    
+    menu_destroy(menu);
+    
+    ShowFlagMenu(id, g_iMenuTarget[id]); 
+    return PLUGIN_HANDLED;
+}
+
+GetFlagNameByValue(flagValue, output[], maxlen)
+{
+    for (new i = 0; i < sizeof(g_iFlagValues); i++)
+    {
+        if (g_iFlagValues[i] == flagValue)
+        {
+            copy(output, maxlen, g_szFlagNames[i]);
+            return;
+        }
+    }
+    copy(output, maxlen, "Unknown");
 }
 
 EnsureConfigFileExists()
@@ -267,7 +460,7 @@ stock SendColoredMessageAll(const msg[], bool:bIsMVP, bool:bPlaySound)
     {
         new id = players[i];
         
-        if (bIsMVP && !(get_user_flags(id) & MVP_FLAG))
+        if (bIsMVP && !(get_user_flags(id) & g_iFlagMVP))
             continue;
 
         message_begin(MSG_ONE, g_msgSayText, _, id);
@@ -364,7 +557,7 @@ public CmdAnnReload(id, level, cid)
         return PLUGIN_HANDLED;
     }
 
-    if (!cmd_access(id, level, cid, 1))
+    if (!(get_user_flags(id) & g_iFlagReload))
     {
         client_print(id, print_console, "[Announcer] You do not have access to this command.");
         return PLUGIN_HANDLED;
