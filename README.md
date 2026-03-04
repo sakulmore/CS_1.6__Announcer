@@ -25,7 +25,7 @@ A plugin that sends announcement messages to players at a chosen interval.
 
 The command is protected by an Admin Flag. To change the Admin Flag, simply edit the line `#define ANN_RELOAD_FLAG ADMIN_LEVEL_H` in the .sma file.
 
-`amx_ann_menu` = Opens the menu for changing admin flags.
+`ann_menu` = Opens the menu for changing admin flags.
 
 # Config File
 Default:
