@@ -2,7 +2,7 @@
 #include <amxmisc>
 
 #define PLUGIN_NAME    "Announcer"
-#define PLUGIN_VERSION "1.6"
+#define PLUGIN_VERSION "1.7"
 #define PLUGIN_AUTHOR  "sakulmore"
 
 #define TASK_ANNOUNCER   50011
@@ -13,6 +13,7 @@
 
 new g_iFlagReload = ADMIN_LEVEL_H;
 new g_iFlagMVP = ADMIN_LEVEL_H;
+new g_iFlagMenu = ADMIN_RCON;
 
 new g_szCfgPath[256];
 new g_szFlagsCfgPath[256];
@@ -106,6 +107,10 @@ LoadFlagsConfig()
         {
             g_iFlagMVP = read_flags(val);
         }
+        else if (equali(key, "menu"))
+        {
+            g_iFlagMenu = read_flags(val);
+        }
     }
     fclose(fp);
 }
@@ -115,20 +120,22 @@ SaveFlagsConfig()
     new fp = fopen(g_szFlagsCfgPath, "wt");
     if (!fp) return;
 
-    new szReload[32], szMVP[32];
+    new szReload[32], szMVP[32], szMenu[32];
     get_flags(g_iFlagReload, szReload, charsmax(szReload));
     get_flags(g_iFlagMVP, szMVP, charsmax(szMVP));
+    get_flags(g_iFlagMenu, szMenu, charsmax(szMenu));
 
     fprintf(fp, "; Announcer Flags Configuration%c", 10);
     fprintf(fp, "reload=%s%c", szReload, 10);
     fprintf(fp, "mvp=%s%c", szMVP, 10);
+    fprintf(fp, "menu=%s%c", szMenu, 10);
 
     fclose(fp);
 }
 
 public CmdShowMainMenu(id)
 {
-    if (!(get_user_flags(id) & ADMIN_RCON))
+    if (!(get_user_flags(id) & g_iFlagMenu))
     {
         client_print(id, print_chat, "[Announcer] You do not have access to the flag settings.");
         return PLUGIN_HANDLED;
@@ -144,6 +151,10 @@ public CmdShowMainMenu(id)
     GetFlagNameByValue(g_iFlagMVP, szFlagName, charsmax(szFlagName));
     formatex(szItem, charsmax(szItem), "Change flag for: \yMVP Messages\w (Current: \r%s\w)", szFlagName);
     menu_additem(menu, szItem, "1");
+
+    GetFlagNameByValue(g_iFlagMenu, szFlagName, charsmax(szFlagName));
+    formatex(szItem, charsmax(szItem), "Change flag for: \yMenu Command\w (Current: \r%s\w)", szFlagName);
+    menu_additem(menu, szItem, "2");
 
     menu_display(id, menu, 0);
     return PLUGIN_HANDLED;
@@ -171,11 +182,18 @@ public ShowFlagMenu(id, settingType)
 {
     g_iMenuTarget[id] = settingType; 
     
-    new menuTitle[128];
-    formatex(menuTitle, charsmax(menuTitle), "\ySelect a new flag for \w%s:", settingType == 0 ? "Reload" : "MVP");
+    new menuTitle[128], szTargetName[32];
+    if (settingType == 0) copy(szTargetName, charsmax(szTargetName), "Reload");
+    else if (settingType == 1) copy(szTargetName, charsmax(szTargetName), "MVP");
+    else copy(szTargetName, charsmax(szTargetName), "Menu Command");
+
+    formatex(menuTitle, charsmax(menuTitle), "\ySelect a new flag for \w%s:", szTargetName);
     new menu = menu_create(menuTitle, "FlagMenu_Handler");
     
-    new currentFlag = (settingType == 0) ? g_iFlagReload : g_iFlagMVP;
+    new currentFlag;
+    if (settingType == 0) currentFlag = g_iFlagReload;
+    else if (settingType == 1) currentFlag = g_iFlagMVP;
+    else currentFlag = g_iFlagMenu;
     
     for (new i = 0; i < sizeof(g_szFlagNames); i++)
     {
@@ -212,15 +230,28 @@ public FlagMenu_Handler(id, menu, item)
     new flagIndex = str_to_num(data);
     new newFlag = g_iFlagValues[flagIndex];
     
+    if (!(get_user_flags(id) & newFlag))
+    {
+        client_print(id, print_chat, "[Announcer] You cannot set an Admin Flag that you do not currently have (self-lock prevention).");
+        menu_destroy(menu);
+        ShowFlagMenu(id, g_iMenuTarget[id]);
+        return PLUGIN_HANDLED;
+    }
+    
     if (g_iMenuTarget[id] == 0)
     {
         g_iFlagReload = newFlag;
         client_print(id, print_chat, "[Announcer] Reload flag has been changed to: %s", g_szFlagNames[flagIndex]);
     }
-    else
+    else if (g_iMenuTarget[id] == 1)
     {
         g_iFlagMVP = newFlag;
         client_print(id, print_chat, "[Announcer] MVP flag has been changed to: %s", g_szFlagNames[flagIndex]);
+    }
+    else
+    {
+        g_iFlagMenu = newFlag;
+        client_print(id, print_chat, "[Announcer] Menu Command flag has been changed to: %s", g_szFlagNames[flagIndex]);
     }
     
     SaveFlagsConfig();
