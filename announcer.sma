@@ -2,7 +2,7 @@
 #include <amxmisc>
 
 #define PLUGIN_NAME    "Announcer"
-#define PLUGIN_VERSION "1.5"
+#define PLUGIN_VERSION "1.6"
 #define PLUGIN_AUTHOR  "sakulmore"
 
 #define TASK_ANNOUNCER   50011
