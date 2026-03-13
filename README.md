@@ -41,6 +41,7 @@ Default:
 ;   {MAXPLAYERS} - Server slots
 ;   {MAP}        - Current map name
 ;   {TIME}       - Current server time
+;   {DATE}       - Current server date
 ;   {IMPO}       - Plays an alert sound
 ;   {MVP}        - Message visible only to admins
 ;
@@ -56,11 +57,13 @@ Messages:
 ```
 - After installing the plugin on the server, a new .cfg file `announcer.cfg` will be created in the `/cstrike/addons/amxmodx/data` folder.
 
-# Variables
+# Variables (placeholders)
 ```
 {PLAYERS} - Displays the current number of players on the server.
 {MAXPLAYERS} - Shows the maximum number of players (slots) on the server.
 {MAP} - Shows the currently played map.
+{TIME} - Current server time.
+{DATE} - Current server date.
 {IMPO} - Plays a sound when the message is displayed.
 {MVP} - The message will only be displayed to players with the appropriate admin flag.
 ```

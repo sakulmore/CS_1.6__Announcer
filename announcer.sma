@@ -263,6 +263,7 @@ EnsureConfigFileExists()
     fprintf(fp, ";   {MAXPLAYERS} - Server slots%c", 10);
     fprintf(fp, ";   {MAP}        - Current map name%c", 10);
     fprintf(fp, ";   {TIME}       - Current server time%c", 10);
+    fprintf(fp, ";   {DATE}       - Current server date%c", 10);
     fprintf(fp, ";   {IMPO}       - Plays an alert sound%c", 10);
     fprintf(fp, ";   {MVP}        - Message visible only to admins%c", 10);
     fprintf(fp, ";%c", 10);
@@ -539,6 +540,13 @@ public Task_Announce()
         new timeStr[32];
         get_time("%H:%M:%S", timeStr, charsmax(timeStr));
         replace_all(msg, charsmax(msg), "{TIME}", timeStr);
+    }
+
+    if (contain(msg, "{DATE}") != -1)
+    {
+        new dateStr[32];
+        get_time("%d.%m.%Y", dateStr, charsmax(dateStr));
+        replace_all(msg, charsmax(msg), "{DATE}", dateStr);
     }
 
     trim(msg);
